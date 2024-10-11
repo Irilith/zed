@@ -4495,6 +4495,7 @@ impl Render for ContextEditor {
                             h_flex()
                                 .gap_2()
                                 .child(render_inject_context_menu(cx.view().downgrade(), cx))
+                                .child(render_copy_conversation_button(cx))
                                 .child(
                                     IconButton::new("quote-button", IconName::Quote)
                                         .icon_size(IconSize::Small)
@@ -4799,6 +4800,22 @@ fn render_inject_context_menu(
                 Tooltip::with_meta("Insert Context", None, "Type / to insert via keyboard", cx)
             }),
     )
+}
+
+fn render_copy_conversation_button(cx: &mut WindowContext<'_>) -> impl IntoElement {
+    IconButton::new("copy-conversation", IconName::Copy)
+        .icon_size(IconSize::Small)
+        .tooltip(|cx| {
+            Tooltip::with_meta(
+                "Copy Conversation",
+                None,
+                "Copy the current conversation to the clipboard",
+                cx,
+            )
+        })
+        .on_click(move |_, cx| {
+            cx.dispatch_action(CopyConversation.boxed_clone());
+        })
 }
 
 impl ContextEditorToolbarItem {
