@@ -12,11 +12,12 @@ use crate::{
     slash_command_picker,
     terminal_inline_assistant::TerminalInlineAssistant,
     Assist, CacheStatus, ConfirmCommand, Content, Context, ContextEvent, ContextId, ContextStore,
-    ContextStoreEvent, CopyCode, CycleMessageRole, DeployHistory, DeployPromptLibrary,
-    InlineAssistId, InlineAssistant, InsertDraggedFiles, InsertIntoEditor, Message, MessageId,
-    MessageMetadata, MessageStatus, ModelPickerDelegate, ModelSelector, NewContext,
-    PendingSlashCommand, PendingSlashCommandStatus, QuoteSelection, RemoteContextMetadata,
-    SavedContextMetadata, Split, ToggleFocus, ToggleModelSelector, WorkflowStepResolution,
+    ContextStoreEvent, CopyCode, CopyConversation, CycleMessageRole, DeployHistory,
+    DeployPromptLibrary, InlineAssistId, InlineAssistant, InsertDraggedFiles, InsertIntoEditor,
+    Message, MessageId, MessageMetadata, MessageStatus, ModelPickerDelegate, ModelSelector,
+    NewContext, PendingSlashCommand, PendingSlashCommandStatus, QuoteSelection,
+    RemoteContextMetadata, SavedContextMetadata, Split, ToggleFocus, ToggleModelSelector,
+    WorkflowStepResolution,
 };
 use anyhow::Result;
 use assistant_slash_command::{SlashCommand, SlashCommandOutputSection};
@@ -1144,6 +1145,35 @@ impl AssistantPanel {
         }
     }
 
+    fn copy_conversation(&mut self, _: &CopyConversation, cx: &mut ViewContext<Self>) {
+        if let Some(active_context) = self.active_context(cx) {
+            let serialize_context = active_context.read(cx).serialize(cx);
+            let conversation_summary = serialize_context.summary;
+            let conversation_text = serialize_context.text;
+            let conversation_data = serialize_context.messages;
+            let mut result = format!("Summary: {}\n\n", conversation_summary);
+            for (i, message) in conversation_data.iter().enumerate() {
+                let end = conversation_data
+                    .get(i + 1)
+                    .map_or(conversation_text.len(), |next_message| next_message.start);
+                let trimmed_text = conversation_text[message.start..end].trim();
+                if trimmed_text.is_empty() {
+                    continue;
+                }
+                let role = message
+                    .metadata
+                    .role
+                    .to_string()
+                    .chars()
+                    .enumerate()
+                    .map(|(i, c)| if i == 0 { c.to_ascii_uppercase() } else { c })
+                    .collect::<String>();
+                result.push_str(&format!("------\n{}:\n{}\n------\n\n", role, trimmed_text));
+            }
+            cx.write_to_clipboard(ClipboardItem::new_string(result));
+        }
+    }
+
     fn deploy_history(&mut self, _: &DeployHistory, cx: &mut ViewContext<Self>) {
         let history_item_ix = self
             .pane
@@ -1323,6 +1353,7 @@ impl Render for AssistantPanel {
                 cx.listener(|this, _: &ShowConfiguration, cx| this.show_configuration_tab(cx)),
             )
             .on_action(cx.listener(AssistantPanel::deploy_history))
+            .on_action(cx.listener(AssistantPanel::copy_conversation))
             .on_action(cx.listener(AssistantPanel::deploy_prompt_library))
             .on_action(cx.listener(AssistantPanel::toggle_model_selector))
             .child(registrar.size_full().child(self.pane.clone()))

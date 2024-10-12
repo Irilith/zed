@@ -71,7 +71,8 @@ actions!(
         NewContext,
         ToggleModelSelector,
         CycleNextInlineAssist,
-        CyclePreviousInlineAssist
+        CyclePreviousInlineAssist,
+        CopyConversation
     ]
 );
 
