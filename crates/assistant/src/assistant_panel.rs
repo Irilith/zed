@@ -1151,6 +1151,22 @@ impl AssistantPanel {
             let conversation_summary = serialize_context.summary;
             let conversation_text = serialize_context.text;
             let conversation_data = serialize_context.messages;
+
+            if conversation_text.trim().is_empty() {
+                self.workspace.update(cx, |model, ctx| {
+                    struct CopyConversationError;
+                    model.show_toast(
+                        Toast::new(
+                            NotificationId::unique::<CopyConversationError>(),
+                            "Failed to copy conversation: No text found",
+                        )
+                        .autohide(),
+                        ctx,
+                    )
+                });
+                return;
+            }
+
             let mut result = format!("Summary: {}\n\n", conversation_summary);
 
             for (i, message) in conversation_data.iter().enumerate() {
