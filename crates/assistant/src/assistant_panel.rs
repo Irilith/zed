@@ -1152,6 +1152,7 @@ impl AssistantPanel {
             let conversation_text = serialize_context.text;
             let conversation_data = serialize_context.messages;
             let mut result = format!("Summary: {}\n\n", conversation_summary);
+
             for (i, message) in conversation_data.iter().enumerate() {
                 let end = conversation_data
                     .get(i + 1)
@@ -1170,7 +1171,20 @@ impl AssistantPanel {
                     .collect::<String>();
                 result.push_str(&format!("------\n{}:\n{}\n------\n\n", role, trimmed_text));
             }
+
             cx.write_to_clipboard(ClipboardItem::new_string(result));
+
+            self.workspace.update(cx, |model, ctx| {
+                struct CopyConversationSuccess;
+                model.show_toast(
+                    Toast::new(
+                        NotificationId::unique::<CopyConversationSuccess>(),
+                        "Conversation copied to clipboard",
+                    )
+                    .autohide(),
+                    ctx,
+                )
+            });
         }
     }
 
